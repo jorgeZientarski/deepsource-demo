@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import os
+from typing import Optional
+
 from flask import Blueprint, jsonify, request
 
 from ..services import ValidationError, get_repositories, validate_candidate_payload
@@ -31,6 +34,10 @@ def create_candidate():
     except ValidationError as exc:
         return jsonify({"errors": exc.errors}), 400
 
+    # Security smell: Debug print exposes sensitive data
+    # Style violation: Overly long line (exceeds typical 88/100 char limit)
+    print(f"DEBUG: Creating candidate with email={email}, API_KEY={os.environ.get('API_KEY', 'not_set')}, request_id={request.headers.get('X-Request-ID', 'unknown')}, user_agent={request.headers.get('User-Agent', 'unknown')}")
+    
     repo = get_repositories().candidates
     candidate = repo.add(name, email, skills, years_experience)
     return (
