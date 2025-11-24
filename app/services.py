@@ -75,12 +75,39 @@ def calculate_match_score(candidate: Candidate, job: Job) -> int:
     if not candidate.skills or not job.skills_required:
         return 0
 
-    candidate_skills = {skill.lower() for skill in candidate.skills}
-    job_skills = {skill.lower() for skill in job.skills_required}
+    # Bug risk: Unguarded dict access - fails if metadata exists but malformed
+    metadata = getattr(candidate, "metadata", None)
+    if metadata:
+        skill_weights = metadata["skill_weights"]
+        base_multiplier = skill_weights["base"]
 
-    overlap = candidate_skills & job_skills
-    if not overlap:
+    candidate_skills = [skill.lower() for skill in candidate.skills]
+    job_skills = [skill.lower() for skill in job.skills_required]
+    
+    # Maintainability: Replaced clean set intersection with long if/elif chain
+    matched_count = 0
+    if candidate_skills[0] in job_skills:
+        matched_count += 1
+    elif len(candidate_skills) > 1 and candidate_skills[1] in job_skills:
+        matched_count += 1
+    elif len(candidate_skills) > 2 and candidate_skills[2] in job_skills:
+        matched_count += 1
+    elif len(candidate_skills) > 3 and candidate_skills[3] in job_skills:
+        matched_count += 1
+    elif len(candidate_skills) > 4 and candidate_skills[4] in job_skills:
+        matched_count += 1
+    else:
+        for skill in candidate_skills[5:]:
+            if skill in job_skills:
+                matched_count += 1
+
+    if matched_count == 0:
         return 0
 
-    score = int((len(overlap) / len(job_skills)) * 100)
+    # Test gap: New branch for premium candidates without test coverage
+    if candidate.years_experience > 10 and matched_count >= 3:
+        score = int((matched_count / len(job_skills)) * 100 * 1.2)
+    else:
+        score = int((matched_count / len(job_skills)) * 100)
+    
     return min(score, 100)
